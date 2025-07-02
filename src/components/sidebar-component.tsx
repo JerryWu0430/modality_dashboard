@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Sidebar, SidebarBody } from "@/components/ui/sidebar";
+import { Sidebar, SidebarBody, useSidebar } from "@/components/ui/sidebar";
 import {
   IconUserBolt,
   IconHelp,
@@ -10,7 +10,7 @@ import {
   IconSettings,
   IconSelector,
 } from "@tabler/icons-react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 
 export function SidebarComponent({ children }: { children: React.ReactNode }) {
@@ -33,7 +33,6 @@ export function SidebarComponent({ children }: { children: React.ReactNode }) {
     {
       label: "Batch Try-On",
       href: "#",
-      subtitle: "(coming soon)",
       icon: (
         <IconShirtSport className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-400" />
       ),
@@ -41,7 +40,6 @@ export function SidebarComponent({ children }: { children: React.ReactNode }) {
     {
       label: "Web Extension",
       href: "#",
-      subtitle: "(coming soon)",
       icon: (
         <IconPuzzle className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-400" />
       ),
@@ -66,44 +64,24 @@ export function SidebarComponent({ children }: { children: React.ReactNode }) {
     },
   ];
 
-  const [open, setOpen] = useState(true); // Always open
+  const [open, setOpen] = useState(true);
   
   return (
     <div
       className={cn(
         "flex w-full flex-1 flex-col overflow-hidden bg-gray-100 md:flex-row dark:bg-neutral-800",
-        "h-screen" // Using h-screen for full height
+        "min-h-screen" // Using min-h-screen for fluid height
       )}
     >
-      <Sidebar open={true} setOpen={setOpen} animate={false}>
-        <SidebarBody className="flex flex-col h-full">
-          {/* TOP SECTION - Company Logo */}
-          <div className="flex py-4 px-3 border-b border-neutral-200 dark:border-neutral-700">
-            <Logo />
-          </div>
-
-          {/* MIDDLE SECTION - Main Navigation (Vertically Centered, Left-aligned items) */}
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col gap-5 w-full">
-              {middleLinks.map((link, idx) => (
-                <HorizontalSidebarLink key={idx} link={link} />
-              ))}
-            </div>
-          </div>
-
-          {/* BOTTOM SECTION - Help & User */}
-          <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4 pb-4">
-            <div className="flex flex-col gap-0">
-              {bottomLinks.map((link, idx) => (
-                <HorizontalSidebarLink key={idx} link={link} />
-              ))}
-              <UserProfile />
-            </div>
-          </div>
+      <Sidebar open={open} setOpen={setOpen} animate={true}>
+        <SidebarBody>
+          <SidebarContent middleLinks={middleLinks} bottomLinks={bottomLinks} />
         </SidebarBody>
       </Sidebar>
-      <div className="flex flex-1">
-        <div className="flex h-full w-full flex-1 flex-col bg-white dark:bg-neutral-900">
+      
+      {/* Main Content Area - Lower z-index to not interfere with sidebar tooltips */}
+      <div className="flex flex-1 overflow-hidden relative z-10">
+        <div className="flex h-screen w-full flex-1 flex-col bg-white dark:bg-neutral-900 overflow-y-auto">
           {children}
         </div>
       </div>
@@ -111,91 +89,299 @@ export function SidebarComponent({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Horizontal Sidebar Link Component (icon beside text, left-aligned)
-const HorizontalSidebarLink = ({ 
+// Separate component for sidebar content to access sidebar context
+const SidebarContent = ({ 
+  middleLinks, 
+  bottomLinks 
+}: { 
+  middleLinks: any[], 
+  bottomLinks: any[] 
+}) => {
+  const { open } = useSidebar();
+
+  return (
+    <>
+      {/* TOP SECTION - Company Logo */}
+      <div className={cn(
+        "flex border-b border-neutral-200 dark:border-neutral-700 transition-all duration-300",
+        open ? "py-4 px-0" : "py-4 px-0 justify-center"
+      )}>
+        <Logo />
+      </div>
+
+      {/* MIDDLE SECTION - Main Navigation (Vertically Centered, Left-aligned items) */}
+      <div className="flex-1 flex items-center">
+        <div className="flex flex-col gap-2 w-full">
+          {middleLinks.map((link, idx) => (
+            <ResponsiveSidebarLink key={idx} link={link} />
+          ))}
+        </div>
+      </div>
+
+      {/* BOTTOM SECTION - Help, Settings & User */}
+      <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4 pb-4">
+        <div className="flex flex-col gap-2">
+          {bottomLinks.map((link, idx) => (
+            <ResponsiveSidebarLink key={idx} link={link} />
+          ))}
+          <UserProfile />
+        </div>
+      </div>
+    </>
+  );
+};
+
+// Responsive Sidebar Link Component that works with collapsed state
+const ResponsiveSidebarLink = ({ 
   link 
 }: { 
   link: { 
     label: string; 
     href: string; 
     icon: React.ReactNode; 
-    subtitle?: string; 
   } 
 }) => {
-  const isComingSoon = link.subtitle === "(coming soon)";
+  const { open } = useSidebar();
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const linkRef = React.useRef<HTMLAnchorElement>(null);
+
+  const handleMouseEnter = () => {
+    if (!open && linkRef.current) {
+      const rect = linkRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        x: rect.right + 8,
+        y: rect.top + rect.height / 2
+      });
+      setShowTooltip(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+  };
   
   return (
-    <a
-      href={link.href}
-      className={cn(
-        "flex items-center gap-3 p-2 rounded-lg transition-colors group",
-        isComingSoon 
-          ? "cursor-not-allowed opacity-60" 
-          : "hover:bg-neutral-200 dark:hover:bg-neutral-700 cursor-pointer"
-      )}
-    >
-      {link.icon}
-      <div className="flex flex-col">
-        <div className={cn(
-          "text-sm font-medium leading-tight",
-          isComingSoon 
-            ? "text-neutral-500 dark:text-neutral-400" 
-            : "text-neutral-700 dark:text-neutral-200"
-        )}>
-          {link.label}
-        </div>
-        {link.subtitle && (
-          <div className="text-xs text-neutral-400 dark:text-neutral-500 leading-tight">
-            {link.subtitle}
-          </div>
+    <>
+      <a
+        ref={linkRef}
+        href={link.href}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+          "text-neutral-700 hover:bg-neutral-200 hover:text-neutral-900",
+          "dark:text-neutral-300 dark:hover:bg-neutral-700 dark:hover:text-neutral-100",
+          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
+          "relative",
+          !open && "justify-center"
         )}
-      </div>
-    </a>
+      >
+        <div className="shrink-0">
+          {link.icon}
+        </div>
+
+        <AnimatePresence>
+          {open && (
+            <motion.span
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+              className="whitespace-nowrap overflow-hidden"
+            >
+              {link.label}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </a>
+
+      {/* Tooltip for collapsed state - Using fixed positioning */}
+      {!open && showTooltip && (
+        <div 
+          className="fixed z-[9999] pointer-events-none"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            transform: 'translateY(-50%)'
+          }}
+        >
+          <div className="rounded-md bg-neutral-900 px-2 py-1 text-xs text-white shadow-lg dark:bg-white dark:text-neutral-900 whitespace-nowrap animate-in fade-in-0 zoom-in-95 duration-200">
+            {link.label}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
-// User Profile Component
+// User Profile Component with responsive behavior
 const UserProfile = () => {
+  const { open } = useSidebar();
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const profileRef = React.useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = () => {
+    if (!open && profileRef.current) {
+      const rect = profileRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        x: rect.right + 8,
+        y: rect.top + rect.height / 2
+      });
+      setShowTooltip(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+  };
+
   return (
-    <div className="flex items-center gap-3 p-3 w-full bg-gray-50 dark:bg-neutral-800 rounded-lg">
-      <img
-        src="https://assets.aceternity.com/manu.png"
-        className="h-8 w-8 shrink-0 rounded-full"
-        width={32}
-        height={32}
-        alt="User Avatar"
-      />
-      <div className="flex flex-col flex-1">
-        <div className="text-sm font-medium text-neutral-700 dark:text-neutral-200 leading-tight">
-          Jerry Wu
+    <>
+      <div 
+        ref={profileRef}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={cn(
+          "flex items-center w-full bg-gray-50 dark:bg-neutral-800 rounded-lg transition-all duration-200 relative",
+          open ? "gap-3 p-3" : "p-3 justify-center"
+        )}
+      >
+        <div className="shrink-0">
+          <img
+            src="https://assets.aceternity.com/manu.png"
+            className="h-8 w-8 rounded-full object-cover"
+            width={32}
+            height={32}
+            alt="User Avatar"
+          />
         </div>
-        <div className="text-xs text-neutral-500 dark:text-neutral-400 leading-tight">
-          jerry@example.com
-        </div>
+        
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+              className="flex flex-col flex-1 overflow-hidden min-w-0"
+            >
+              <div className="text-sm font-medium text-neutral-700 dark:text-neutral-200 leading-tight truncate">
+                Jerry Wu
+              </div>
+              <div className="text-xs text-neutral-500 dark:text-neutral-400 leading-tight truncate">
+                jerry@example.com
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+              className="shrink-0"
+            >
+              <IconSelector className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      <IconSelector className="h-4 w-4 shrink-0 text-neutral-500 dark:text-neutral-400" />
-    </div>
+
+      {/* Tooltip for collapsed state - Using fixed positioning */}
+      {!open && showTooltip && (
+        <div 
+          className="fixed z-[9999] pointer-events-none"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            transform: 'translateY(-50%)'
+          }}
+        >
+          <div className="rounded-md bg-neutral-900 px-2 py-1 text-xs text-white shadow-lg dark:bg-white dark:text-neutral-900 whitespace-nowrap animate-in fade-in-0 zoom-in-95 duration-200">
+            Jerry Wu
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
 export const Logo = () => {
+  const { open } = useSidebar();
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const logoRef = React.useRef<HTMLAnchorElement>(null);
+
+  const handleMouseEnter = () => {
+    if (!open && logoRef.current) {
+      const rect = logoRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        x: rect.right + 8,
+        y: rect.top + rect.height / 2
+      });
+      setShowTooltip(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+  };
+
   return (
-    <a
-      href="#"
-      className="relative z-20 flex items-center gap-1 text-sm font-normal text-black"
-    >
-      <img 
-        src="/icon.png"
-        alt="Modality Logo"
-        className="h-8 w-8 shrink-0 rounded-lg"
-      />
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-bold text-xl text-black dark:text-white leading-tight"
+    <>
+      <a
+        ref={logoRef}
+        href="#"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={cn(
+          "relative z-20 flex text-sm font-normal text-black transition-all duration-200",
+          open ? "items-center gap-2" : "items-center justify-center"
+        )}
       >
-        odality
-      </motion.span>
-    </a>
+        <div className="shrink-0">
+          <img 
+            src="/icon.png"
+            alt="Modality Logo"
+            className="h-8 w-8 rounded-lg object-cover"
+          />
+        </div>
+        
+        <AnimatePresence>
+          {open && (
+            <motion.span
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+              className="font-bold text-xl text-black dark:text-white leading-tight whitespace-nowrap overflow-hidden"
+            >
+              odality
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </a>
+
+      {/* Tooltip for collapsed state - Using fixed positioning */}
+      {!open && showTooltip && (
+        <div 
+          className="fixed z-[9999] pointer-events-none"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            transform: 'translateY(-50%)'
+          }}
+        >
+          <div className="rounded-md bg-neutral-900 px-2 py-1 text-xs text-white shadow-lg dark:bg-white dark:text-neutral-900 whitespace-nowrap animate-in fade-in-0 zoom-in-95 duration-200">
+            odality
+          </div>
+        </div>
+      )}
+    </>
   );
 }; 
