@@ -18,28 +18,28 @@ export function SidebarComponent({ children }: { children: React.ReactNode }) {
   const middleLinks = [
     {
       label: "Virtual Try-On",
-      href: "#",
+      href: "/virtual-try-on",
       icon: (
         <IconUserBolt className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
     },
     {
       label: "Mock Video",
-      href: "#",
+      href: "/mock-video",
       icon: (
         <IconCameraSpark className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
     },
     {
       label: "Batch Try-On",
-      href: "#",
+      href: "/batch-try-on",
       icon: (
         <IconShirtSport className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-400" />
       ),
     },
     {
       label: "Web Extension",
-      href: "#",
+      href: "/web-extension",
       icon: (
         <IconPuzzle className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-400" />
       ),
@@ -50,14 +50,14 @@ export function SidebarComponent({ children }: { children: React.ReactNode }) {
   const bottomLinks = [
     {
       label: "Help",
-      href: "#",
+      href: "/help",
       icon: (
         <IconHelp className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
     },
     {
       label: "Settings",
-      href: "#",
+      href: "/settings",
       icon: (
         <IconSettings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
@@ -336,7 +336,7 @@ export const Logo = () => {
     <>
       <a
         ref={logoRef}
-        href="#"
+        href="/"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={cn(
