@@ -219,8 +219,11 @@ const ResponsiveSidebarLink = ({
 const UserProfile = () => {
   const { open } = useSidebar();
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
   const profileRef = React.useRef<HTMLDivElement>(null);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   const handleMouseEnter = () => {
     if (!open && profileRef.current) {
@@ -237,14 +240,46 @@ const UserProfile = () => {
     setShowTooltip(false);
   };
 
+  const handleProfileClick = () => {
+    if (open && profileRef.current) {
+      const rect = profileRef.current.getBoundingClientRect();
+      // Position the dropdown in the main dashboard area, bottom left
+      setDropdownPosition({
+        x: rect.right + 25, // Small offset from sidebar edge
+        y: window.innerHeight - 330 // Fixed distance from bottom of screen
+      });
+      setShowDropdown(!showDropdown);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target as Node) &&
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDropdown]);
+
   return (
     <>
       <div 
         ref={profileRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onClick={handleProfileClick}
         className={cn(
-          "flex items-center w-full bg-gray-50 dark:bg-neutral-800 rounded-lg transition-all duration-200 relative",
+          "flex items-center w-full bg-gray-50 dark:bg-neutral-800 rounded-lg transition-all duration-200 relative cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700",
           open ? "gap-3 p-3" : "p-3 justify-center"
         )}
       >
@@ -307,7 +342,132 @@ const UserProfile = () => {
           </div>
         </div>
       )}
+
+      {/* Profile Dropdown Overlay */}
+      <AnimatePresence>
+        {open && showDropdown && (
+          <div 
+            ref={dropdownRef}
+            className="fixed z-[9999]"
+            style={{
+              left: `${dropdownPosition.x}px`,
+              top: `${dropdownPosition.y}px`,
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, x: -10 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.95, x: -10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 min-w-[220px] py-2"
+            >
+              {/* Profile Header */}
+              <div className="px-4 py-3 border-b border-neutral-100 dark:border-neutral-700">
+                <div className="flex items-center gap-3">
+                  <img
+                    src="https://assets.aceternity.com/manu.png"
+                    className="h-10 w-10 rounded-full object-cover"
+                    width={40}
+                    height={40}
+                    alt="User Avatar"
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                      Jerry Wu
+                    </div>
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                      jerry@example.com
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Menu Items */}
+              <div className="py-2">
+                <ProfileMenuItem 
+                  icon={<IconUserBolt className="h-4 w-4" />}
+                  label="Account Settings"
+                  href="/settings"
+                />
+                <ProfileMenuItem 
+                  icon={<IconHelp className="h-4 w-4" />}
+                  label="History"
+                  href="#" // TODO: Add history page
+                />
+                
+                <div className="border-t border-neutral-100 dark:border-neutral-700 my-2"></div>
+                
+                <ProfileMenuItem 
+                  icon={<IconSelector className="h-4 w-4 text-yellow-600" />}
+                  label="Upgrade to Pro"
+                  href="#" // TODO: Add upgrade page
+                  highlight={true}
+                />
+                
+                <div className="border-t border-neutral-100 dark:border-neutral-700 my-2"></div>
+                
+                <ProfileMenuItem 
+                  icon={<IconSettings className="h-4 w-4" />}
+                  label="Logout"
+                  href="/"
+                  onClick={() => {
+                    // Handle logout logic here
+                    setShowDropdown(false);
+                  }}
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="px-4 py-2 border-t border-neutral-100 dark:border-neutral-700">
+                <div className="text-xs text-neutral-400 dark:text-neutral-500">
+                  v1.5.69 • <a href="/terms" className="hover:text-neutral-600 dark:hover:text-neutral-300">Terms & Conditions</a>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
+  );
+};
+
+// Profile Menu Item Component
+const ProfileMenuItem = ({ 
+  icon, 
+  label, 
+  href, 
+  highlight = false,
+  rightElement,
+  onClick 
+}: {
+  icon: React.ReactNode;
+  label: string;
+  href: string;
+  highlight?: boolean;
+  rightElement?: React.ReactNode;
+  onClick?: () => void;
+}) => {
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 px-4 py-1.5 text-sm transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-700",
+        highlight ? "text-yellow-600 dark:text-yellow-400" : "text-neutral-700 dark:text-neutral-300"
+      )}
+    >
+      <div className="shrink-0">
+        {icon}
+      </div>
+      <span className="flex-1">
+        {label}
+      </span>
+      {rightElement && (
+        <div className="shrink-0">
+          {rightElement}
+        </div>
+      )}
+    </a>
   );
 };
 
