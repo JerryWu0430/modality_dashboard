@@ -9,13 +9,28 @@ import {
   IconPuzzle,
   IconSettings,
   IconSelector,
+  IconVip,
+  IconHistory,
+  IconLogout,
+  IconDashboard,
+  IconCreditCard,
 } from "@tabler/icons-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 
 export function SidebarComponent({ children }: { children: React.ReactNode }) {
+  // User subscription tier - this could come from a context or props
+  const userTier = "Freemium"; // Could be "Freemium", "Pro", or "Enterprise"
+  
   // MIDDLE section links
   const middleLinks = [
+    {
+      label: "Dashboard",
+      href: "/",
+      icon: (
+        <IconDashboard className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+      ),
+    },
     {
       label: "Virtual Try-On",
       href: "/virtual-try-on",
@@ -24,7 +39,7 @@ export function SidebarComponent({ children }: { children: React.ReactNode }) {
       ),
     },
     {
-      label: "Mock Video",
+      label: "Try-On Video",
       href: "/mock-video",
       icon: (
         <IconCameraSpark className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
@@ -34,15 +49,17 @@ export function SidebarComponent({ children }: { children: React.ReactNode }) {
       label: "Batch Try-On",
       href: "/batch-try-on",
       icon: (
-        <IconShirtSport className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-400" />
+        <IconShirtSport className="h-5 w-5 shrink-0 text-neutral-400 dark:text-neutral-500 opacity-60" />
       ),
+      isComingSoon: true,
     },
     {
       label: "Web Extension",
       href: "/web-extension",
       icon: (
-        <IconPuzzle className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-400" />
+        <IconPuzzle className="h-5 w-5 shrink-0 text-neutral-400 dark:text-neutral-500 opacity-60" />
       ),
+      isComingSoon: true,
     },
   ];
 
@@ -62,6 +79,14 @@ export function SidebarComponent({ children }: { children: React.ReactNode }) {
         <IconSettings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
     },
+    // Add upgrade plan for freemium users
+    ...(userTier === "Freemium" ? [{
+      label: "Upgrade Plan",
+      href: "/upgrade",
+      icon: (
+        <IconVip className="h-5 w-5 shrink-0 text-yellow-600 dark:text-yellow-400" />
+      ),
+    }] : []),
   ];
 
   const [open, setOpen] = useState(true);
@@ -103,7 +128,7 @@ const SidebarContent = ({
     <>
       {/* TOP SECTION - Company Logo */}
       <div className={cn(
-        "flex border-b border-neutral-200 dark:border-neutral-700 transition-all duration-300",
+        "flex transition-all duration-300",
         open ? "py-4 px-0" : "py-4 px-0 justify-center"
       )}>
         <Logo />
@@ -139,6 +164,7 @@ const ResponsiveSidebarLink = ({
     label: string; 
     href: string; 
     icon: React.ReactNode; 
+    isComingSoon?: boolean;
   } 
 }) => {
   const { open } = useSidebar();
@@ -170,11 +196,12 @@ const ResponsiveSidebarLink = ({
         onMouseLeave={handleMouseLeave}
         className={cn(
           "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
-          "text-neutral-700 hover:bg-neutral-200 hover:text-neutral-900",
-          "dark:text-neutral-300 dark:hover:bg-neutral-700 dark:hover:text-neutral-100",
           "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
           "relative",
-          !open && "justify-center"
+          !open && "justify-center",
+          link.isComingSoon
+            ? "text-neutral-400 dark:text-neutral-500 opacity-70 cursor-default hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50"
+            : "text-neutral-700 hover:bg-neutral-200 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-700 dark:hover:text-neutral-100"
         )}
       >
         <div className="shrink-0">
@@ -188,9 +215,12 @@ const ResponsiveSidebarLink = ({
               animate={{ opacity: 1, width: "auto" }}
               exit={{ opacity: 0, width: 0 }}
               transition={{ duration: 0.2, delay: 0.1 }}
-              className="whitespace-nowrap overflow-hidden"
+              className="whitespace-nowrap overflow-hidden flex items-center gap-2"
             >
               {link.label}
+              {link.isComingSoon && (
+                <div className="h-1.5 w-1.5 bg-amber-500 dark:bg-amber-400 rounded-full animate-pulse"></div>
+              )}
             </motion.span>
           )}
         </AnimatePresence>
@@ -241,12 +271,12 @@ const UserProfile = () => {
   };
 
   const handleProfileClick = () => {
-    if (open && profileRef.current) {
+    if (profileRef.current) {
       const rect = profileRef.current.getBoundingClientRect();
       // Position the dropdown in the main dashboard area, bottom left
       setDropdownPosition({
         x: rect.right + 25, // Small offset from sidebar edge
-        y: window.innerHeight - 330 // Fixed distance from bottom of screen
+        y: window.innerHeight - 334 // Fixed distance from bottom of screen
       });
       setShowDropdown(!showDropdown);
     }
@@ -302,11 +332,16 @@ const UserProfile = () => {
               transition={{ duration: 0.2, delay: 0.1 }}
               className="flex flex-col flex-1 overflow-hidden min-w-0"
             >
-              <div className="text-sm font-medium text-neutral-700 dark:text-neutral-200 leading-tight truncate">
-                Jerry Wu
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-neutral-700 dark:text-neutral-200 leading-tight truncate">
+                  Jerry Wu
+                </span>
+                <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-md font-medium">
+                  Freemium
+                </span>
               </div>
               <div className="text-xs text-neutral-500 dark:text-neutral-400 leading-tight truncate">
-                jerry@example.com
+                jerrywu1@example.com
               </div>
             </motion.div>
           )}
@@ -345,7 +380,7 @@ const UserProfile = () => {
 
       {/* Profile Dropdown Overlay */}
       <AnimatePresence>
-        {open && showDropdown && (
+        {showDropdown && (
           <div 
             ref={dropdownRef}
             className="fixed z-[9999]"
@@ -372,11 +407,16 @@ const UserProfile = () => {
                     alt="User Avatar"
                   />
                   <div>
-                    <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                      Jerry Wu
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        Jerry Wu
+                      </span>
+                      <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-md font-medium">
+                        Freemium
+                      </span>
                     </div>
                     <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                      jerry@example.com
+                      jerrywu1@example.com
                     </div>
                   </div>
                 </div>
@@ -390,7 +430,12 @@ const UserProfile = () => {
                   href="/settings"
                 />
                 <ProfileMenuItem 
-                  icon={<IconHelp className="h-4 w-4" />}
+                  icon={<IconCreditCard className="h-4 w-4" />}
+                  label="Billing Management"
+                  href="/billing"
+                />
+                <ProfileMenuItem 
+                  icon={<IconHistory className="h-4 w-4" />}
                   label="History"
                   href="#" // TODO: Add history page
                 />
@@ -398,7 +443,7 @@ const UserProfile = () => {
                 <div className="border-t border-neutral-100 dark:border-neutral-700 my-2"></div>
                 
                 <ProfileMenuItem 
-                  icon={<IconSelector className="h-4 w-4 text-yellow-600" />}
+                  icon={<IconVip className="h-4 w-4 text-yellow-600" />}
                   label="Upgrade to Pro"
                   href="#" // TODO: Add upgrade page
                   highlight={true}
@@ -407,7 +452,7 @@ const UserProfile = () => {
                 <div className="border-t border-neutral-100 dark:border-neutral-700 my-2"></div>
                 
                 <ProfileMenuItem 
-                  icon={<IconSettings className="h-4 w-4" />}
+                  icon={<IconLogout className="h-4 w-4" />}
                   label="Logout"
                   href="/"
                   onClick={() => {
@@ -420,7 +465,7 @@ const UserProfile = () => {
               {/* Footer */}
               <div className="px-4 py-2 border-t border-neutral-100 dark:border-neutral-700">
                 <div className="text-xs text-neutral-400 dark:text-neutral-500">
-                  v1.5.69 • <a href="/terms" className="hover:text-neutral-600 dark:hover:text-neutral-300">Terms & Conditions</a>
+                  v1.0.00 • <a href="/terms" className="hover:text-neutral-600 dark:hover:text-neutral-300">Terms & Conditions</a>
                 </div>
               </div>
             </motion.div>
@@ -501,14 +546,14 @@ export const Logo = () => {
         onMouseLeave={handleMouseLeave}
         className={cn(
           "relative z-20 flex text-sm font-normal text-black transition-all duration-200",
-          open ? "items-center gap-2" : "items-center justify-center"
+          open ? "items-center gap-1 px-3" : "items-center justify-center px-3"
         )}
       >
         <div className="shrink-0">
           <img 
             src="/icon.png"
             alt="Modality Logo"
-            className="h-8 w-8 rounded-lg object-cover"
+            className="h-10 w-10 rounded-lg object-cover"
           />
         </div>
         
@@ -519,7 +564,7 @@ export const Logo = () => {
               animate={{ opacity: 1, width: "auto" }}
               exit={{ opacity: 0, width: 0 }}
               transition={{ duration: 0.2, delay: 0.1 }}
-              className="font-bold text-xl text-black dark:text-white leading-tight whitespace-nowrap overflow-hidden"
+              className="font-bold text-2xl text-black dark:text-white leading-tight whitespace-nowrap overflow-hidden"
             >
               odality
             </motion.span>
