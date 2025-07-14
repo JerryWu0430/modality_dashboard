@@ -1,71 +1,522 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import { SidebarComponent } from "@/components/sidebar-component";
-import { IconUserBolt, IconUpload, IconCamera, IconWand } from "@tabler/icons-react";
+import { MinimalScrollBar } from "@/components/ui/minimal-scroll-bar";
+import { 
+  IconUpload, 
+  IconPhoto, 
+  IconUser, 
+  IconPalette, 
+  IconBulb,
+  IconTrash,
+  IconDownload,
+  IconPlayerPlay,
+  IconSettings,
+  IconChevronDown,
+  IconChevronRight
+} from "@tabler/icons-react";
+
+type CellContent = {
+  type: 'image' | 'background' | 'model' | 'prompt';
+  value: any;
+} | null;
+
+type TableRow = {
+  id: number;
+  model: CellContent;
+  clothingItems: CellContent[];
+  prompt: CellContent;
+  background: CellContent;
+  result: CellContent;
+};
 
 const VirtualTryOnContent = () => {
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [selectedBackground, setSelectedBackground] = useState("studio");
+  const [selectedModel, setSelectedModel] = useState("default");
+  const [selectedPrompt, setSelectedPrompt] = useState("casual");
+  const [expandedSections, setExpandedSections] = useState({
+    background: true,
+    model: true,
+    prompts: true
+  });
+  const [tableRows, setTableRows] = useState<TableRow[]>([
+    { id: 1, originalPhoto: null, clothingItem: null, style: null, background: null, result: null },
+    { id: 2, originalPhoto: null, clothingItem: null, style: null, background: null, result: null },
+    { id: 3, originalPhoto: null, clothingItem: null, style: null, background: null, result: null }
+  ]);
+
+  const backgrounds = [
+    { id: "studio", name: "Studio", preview: "bg-gradient-to-br from-gray-100 to-gray-200" },
+    { id: "outdoor", name: "Outdoor", preview: "bg-gradient-to-br from-green-100 to-blue-200" },
+    { id: "beach", name: "Beach", preview: "bg-gradient-to-br from-yellow-100 to-blue-300" },
+    { id: "urban", name: "Urban", preview: "bg-gradient-to-br from-gray-300 to-slate-400" },
+    { id: "sunset", name: "Sunset", preview: "bg-gradient-to-br from-orange-200 to-red-300" },
+    { id: "forest", name: "Forest", preview: "bg-gradient-to-br from-green-200 to-green-400" },
+    { id: "desert", name: "Desert", preview: "bg-gradient-to-br from-yellow-200 to-orange-300" },
+    { id: "arctic", name: "Arctic", preview: "bg-gradient-to-br from-blue-100 to-cyan-200" },
+    { id: "nightclub", name: "Nightclub", preview: "bg-gradient-to-br from-purple-300 to-pink-400" },
+    { id: "office", name: "Office", preview: "bg-gradient-to-br from-blue-100 to-gray-200" },
+    { id: "cafe", name: "Cafe", preview: "bg-gradient-to-br from-amber-100 to-orange-200" },
+    { id: "gym", name: "Gym", preview: "bg-gradient-to-br from-red-100 to-red-200" },
+    { id: "rooftop", name: "Rooftop", preview: "bg-gradient-to-br from-indigo-200 to-purple-300" },
+    { id: "garden", name: "Garden", preview: "bg-gradient-to-br from-emerald-100 to-green-200" },
+    { id: "industrial", name: "Industrial", preview: "bg-gradient-to-br from-gray-400 to-zinc-500" }
+  ];
+
+  const models = [
+    { id: "default", name: "Default Model", avatar: "👤" },
+    { id: "athletic", name: "Athletic", avatar: "🏃" },
+    { id: "casual", name: "Casual", avatar: "👕" },
+    { id: "formal", name: "Formal", avatar: "👔" },
+    { id: "female", name: "Female Model", avatar: "👩" },
+    { id: "male", name: "Male Model", avatar: "👨" },
+    { id: "young", name: "Young Adult", avatar: "🧑" },
+    { id: "mature", name: "Mature Adult", avatar: "👴" },
+    { id: "plus-size", name: "Plus Size", avatar: "🧑‍🦲" },
+    { id: "tall", name: "Tall Model", avatar: "🧍" },
+    { id: "petite", name: "Petite Model", avatar: "🙋" },
+    { id: "dancer", name: "Dancer", avatar: "💃" },
+    { id: "business", name: "Business Pro", avatar: "👩‍💼" },
+    { id: "student", name: "Student", avatar: "🧑‍🎓" },
+    { id: "artist", name: "Artist", avatar: "🧑‍🎨" },
+    { id: "fitness", name: "Fitness Model", avatar: "🏋️" },
+    { id: "trendy", name: "Trendy Model", avatar: "🕺" },
+    { id: "classic", name: "Classic Model", avatar: "👩‍🦳" }
+  ];
+
+  const prompts = [
+    { id: "casual", name: "Casual Wear", description: "Comfortable everyday clothing" },
+    { id: "formal", name: "Formal Attire", description: "Professional business wear" },
+    { id: "summer", name: "Summer Style", description: "Light, breathable fabrics" },
+    { id: "winter", name: "Winter Collection", description: "Warm, layered clothing" }
+  ];
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const newImages = Array.from(files).map(file => URL.createObjectURL(file));
+      setUploadedImages(prev => [...prev, ...newImages]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDrop = (e: React.DragEvent, rowId: number, cellType: string) => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData("text/plain");
+    const [type, value] = data.split(":");
+    
+    setTableRows(prev => prev.map(row => {
+      if (row.id === rowId) {
+        if (type === "image") {
+          return { ...row, [cellType]: { type: "image", value } };
+        } else if (type === "background") {
+          const bg = backgrounds.find(b => b.id === value);
+          return { ...row, [cellType]: { type: "background", value: bg } };
+        } else if (type === "model") {
+          const model = models.find(m => m.id === value);
+          return { ...row, [cellType]: { type: "model", value: model } };
+        } else if (type === "prompt") {
+          const prompt = prompts.find(p => p.id === value);
+          return { ...row, [cellType]: { type: "prompt", value: prompt } };
+        }
+      }
+      return row;
+    }));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const clearCell = (rowId: number, cellType: string) => {
+    setTableRows(prev => prev.map(row => {
+      if (row.id === rowId) {
+        return { ...row, [cellType]: null };
+      }
+      return row;
+    }));
+  };
+
   return (
-    <div className="p-6 md:p-10 h-full flex flex-col">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <IconUserBolt className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Virtual Try-On
-          </h1>
-        </div>
-        <p className="text-gray-600 dark:text-gray-400">
-          Experience our AI-powered virtual try-on technology. Upload your photo and see how different outfits look on you.
-        </p>
-      </div>
-      
-      {/* Features Grid */}
-      <div className="flex-1 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-neutral-800 p-6 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700">
-            <IconUpload className="h-8 w-8 text-green-600 dark:text-green-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Upload Photo
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Upload your photo to get started with virtual try-on experience.
-            </p>
-          </div>
-
-          <div className="bg-white dark:bg-neutral-800 p-6 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700">
-            <IconCamera className="h-8 w-8 text-purple-600 dark:text-purple-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Take Photo
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Use your device camera to capture a photo for instant try-on.
-            </p>
-          </div>
-
-          <div className="bg-white dark:bg-neutral-800 p-6 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700">
-            <IconWand className="h-8 w-8 text-orange-600 dark:text-orange-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              AI Processing
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Our AI technology processes your image for realistic try-on results.
-            </p>
-          </div>
+    <div className="h-full flex bg-gray-50 dark:bg-neutral-950">
+      {/* Left Controls Panel */}
+      <div className="w-64 bg-white dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex flex-col">
+        <div className="p-3 border-b border-gray-200 dark:border-neutral-800">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <IconSettings className="h-4 w-4" />
+            Controls
+          </h2>
         </div>
         
-        {/* Try-On Interface */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 p-8 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Start Your Virtual Try-On
+        <div className="flex-1 flex flex-col h-0">
+          {/* Background Section */}
+          <div className="h-1/3 border-b border-gray-200 dark:border-neutral-800 flex flex-col">
+            <button
+              onClick={() => toggleSection('background')}
+              className="w-full p-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors flex-shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <IconPalette className="h-4 w-4 text-purple-600" />
+                <span className="font-medium text-gray-900 dark:text-white">Background</span>
+              </div>
+              {expandedSections.background ? 
+                <IconChevronDown className="h-4 w-4" /> : 
+                <IconChevronRight className="h-4 w-4" />
+              }
+            </button>
+            
+            {expandedSections.background && (
+              <div className="flex-1 min-h-0">
+                <MinimalScrollBar className="h-full">
+                  <div className="p-2 space-y-1">
+                    {backgrounds.map((bg) => (
+                      <div
+                        key={bg.id}
+                        onClick={() => setSelectedBackground(bg.id)}
+                        className={`p-2 rounded-lg cursor-move transition-all ${
+                          selectedBackground === bg.id 
+                            ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20' 
+                            : 'hover:bg-gray-50 dark:hover:bg-neutral-800'
+                        }`}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("text/plain", `background:${bg.id}`);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-md ${bg.preview}`} />
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {bg.name}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </MinimalScrollBar>
+              </div>
+            )}
+          </div>
+
+          {/* Model Section */}
+          <div className="h-1/3 border-b border-gray-200 dark:border-neutral-800 flex flex-col">
+            <button
+              onClick={() => toggleSection('model')}
+              className="w-full p-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors flex-shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <IconUser className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-gray-900 dark:text-white">Model</span>
+              </div>
+              {expandedSections.model ? 
+                <IconChevronDown className="h-4 w-4" /> : 
+                <IconChevronRight className="h-4 w-4" />
+              }
+            </button>
+            
+            {expandedSections.model && (
+              <div className="flex-1 min-h-0">
+                <MinimalScrollBar className="h-full">
+                  <div className="p-2 space-y-1">
+                    {models.map((model) => (
+                      <div
+                        key={model.id}
+                        onClick={() => setSelectedModel(model.id)}
+                        className={`p-2 rounded-lg cursor-move transition-all ${
+                          selectedModel === model.id 
+                            ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                            : 'hover:bg-gray-50 dark:hover:bg-neutral-800'
+                        }`}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("text/plain", `model:${model.id}`);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{model.avatar}</span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {model.name}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </MinimalScrollBar>
+              </div>
+            )}
+          </div>
+
+          {/* Prompts Section */}
+          <div className="h-1/3 border-b border-gray-200 dark:border-neutral-800 flex flex-col">
+            <button
+              onClick={() => toggleSection('prompts')}
+              className="w-full p-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors flex-shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <IconBulb className="h-4 w-4 text-orange-600" />
+                <span className="font-medium text-gray-900 dark:text-white">Prompts</span>
+              </div>
+              {expandedSections.prompts ? 
+                <IconChevronDown className="h-4 w-4" /> : 
+                <IconChevronRight className="h-4 w-4" />
+              }
+            </button>
+            
+            {expandedSections.prompts && (
+              <div className="flex-1 min-h-0">
+                <MinimalScrollBar className="h-full">
+                  <div className="p-2 space-y-1">
+                    {prompts.map((prompt) => (
+                      <div
+                        key={prompt.id}
+                        onClick={() => setSelectedPrompt(prompt.id)}
+                        className={`p-2 rounded-lg cursor-move transition-all ${
+                          selectedPrompt === prompt.id 
+                            ? 'ring-2 ring-orange-500 bg-orange-50 dark:bg-orange-900/20' 
+                            : 'hover:bg-gray-50 dark:hover:bg-neutral-800'
+                        }`}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("text/plain", `prompt:${prompt.id}`);
+                        }}
+                      >
+                        <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                          {prompt.name}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {prompt.description}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </MinimalScrollBar>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Center Workspace */}
+      <div className="flex-1 flex flex-col">
+        {/* Workspace Header */}
+        <div className="p-4 bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Virtual Try-On Workspace
+            </h2>
+            <div className="flex items-center gap-2">
+                             <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors">
+                 <IconPlayerPlay className="h-4 w-4" />
+                 Generate
+               </button>
+              <button className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-gray-700 dark:text-gray-200 rounded-lg flex items-center gap-2 transition-colors">
+                <IconDownload className="h-4 w-4" />
+                Export
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Drag & Drop Table */}
+        <div className="flex-1 p-6 overflow-auto">
+          <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-neutral-800">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Original Photo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Clothing Item
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Style
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Result
+                  </th>
+                </tr>
+              </thead>
+                            <tbody className="divide-y divide-gray-200 dark:divide-neutral-700">
+                {tableRows.map((row) => (
+                  <tr key={row.id}>
+                    <td className="px-6 py-4">
+                      <div 
+                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative"
+                        onDrop={(e) => handleDrop(e, row.id, 'originalPhoto')}
+                        onDragOver={handleDragOver}
+                      >
+                        {row.originalPhoto && row.originalPhoto.type === 'image' ? (
+                          <div className="relative w-full h-full">
+                            <img 
+                              src={row.originalPhoto.value} 
+                              alt="Original" 
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                            <button
+                              onClick={() => clearCell(row.id, 'originalPhoto')}
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                            >
+                              <IconTrash className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <IconPhoto className="h-8 w-8 text-gray-400" />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div 
+                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative"
+                        onDrop={(e) => handleDrop(e, row.id, 'clothingItem')}
+                        onDragOver={handleDragOver}
+                      >
+                        {row.clothingItem && row.clothingItem.type === 'image' ? (
+                          <div className="relative w-full h-full">
+                            <img 
+                              src={row.clothingItem.value} 
+                              alt="Clothing" 
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                            <button
+                              onClick={() => clearCell(row.id, 'clothingItem')}
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                            >
+                              <IconTrash className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <IconUpload className="h-8 w-8 text-gray-400" />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div 
+                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative p-2"
+                        onDrop={(e) => handleDrop(e, row.id, 'style')}
+                        onDragOver={handleDragOver}
+                      >
+                        {row.style ? (
+                          <div className="relative w-full h-full">
+                            {row.style.type === 'prompt' && (
+                              <div className="text-center">
+                                <div className="text-xs font-medium text-gray-900 dark:text-white mb-1">
+                                  {row.style.value?.name}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  Prompt
+                                </div>
+                              </div>
+                            )}
+                            {row.style.type === 'model' && (
+                              <div className="text-center">
+                                <div className="text-lg mb-1">{row.style.value?.avatar}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  {row.style.value?.name}
+                                </div>
+                              </div>
+                            )}
+                            {row.style.type === 'background' && (
+                              <div className="text-center">
+                                <div className={`w-8 h-8 rounded-md ${row.style.value?.preview} mx-auto mb-1`} />
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  {row.style.value?.name}
+                                </div>
+                              </div>
+                            )}
+                            <button
+                              onClick={() => clearCell(row.id, 'style')}
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                            >
+                              <IconTrash className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Drop style here
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-gray-200 dark:border-neutral-700 flex items-center justify-center">
+                        <IconPlayerPlay className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Upload Panel */}
+      <div className="w-80 bg-white dark:bg-neutral-900 border-l border-gray-200 dark:border-neutral-800 flex flex-col">
+        <div className="p-3 border-b border-gray-200 dark:border-neutral-800">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <IconPhoto className="h-4 w-4" />
+            Assets
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Ready to see how you look in different outfits? Get started by uploading a photo or taking one with your camera.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
-              Upload Photo
-            </button>
-            <button className="bg-transparent border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6 py-3 rounded-lg font-medium transition-colors">
-              Take Photo
-            </button>
+        </div>
+        
+        {/* Upload Area */}
+        <div className="p-3 border-b border-gray-200 dark:border-neutral-800">
+          <label className="block">
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <div className="w-full h-24 bg-gray-50 dark:bg-neutral-800 border-2 border-dashed border-gray-300 dark:border-neutral-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors">
+              <IconUpload className="h-6 w-6 text-gray-400 mb-1" />
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                Upload Images
+              </span>
+            </div>
+          </label>
+        </div>
+
+        {/* Uploaded Images Gallery */}
+        <div className="flex-1 overflow-y-auto p-3">
+          <div className="grid grid-cols-2 gap-2">
+            {uploadedImages.map((image, index) => (
+              <div
+                key={index}
+                className="relative group bg-gray-50 dark:bg-neutral-800 rounded-lg p-1 border border-gray-200 dark:border-neutral-700"
+              >
+                <img
+                  src={image}
+                  alt={`Uploaded ${index + 1}`}
+                  className="w-full h-20 object-cover rounded cursor-move"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", `image:${image}`);
+                  }}
+                />
+                <button
+                  onClick={() => removeImage(index)}
+                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <IconTrash className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       </div>
