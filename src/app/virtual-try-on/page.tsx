@@ -15,8 +15,7 @@ import {
   IconSettings,
   IconChevronDown,
   IconChevronRight,
-  IconPlus,
-  IconMinus
+  IconPlus
 } from "@tabler/icons-react";
 
 type CellContent = {
@@ -178,12 +177,6 @@ const VirtualTryOnContent = () => {
     setTableRows(prev => [...prev, newRow]);
   };
 
-  const removeRow = (rowId: number) => {
-    if (tableRows.length > 1) {
-      setTableRows(prev => prev.filter(row => row.id !== rowId));
-    }
-  };
-
   return (
     <div className="h-full flex bg-gray-50 dark:bg-neutral-950">
       {/* Left Controls Panel */}
@@ -242,8 +235,8 @@ const VirtualTryOnContent = () => {
                 </MinimalScrollBar>
               </div>
             )}
-          </div>
-
+      </div>
+      
           {/* Model Section */}
           <div className="h-1/3 border-b border-gray-200 dark:border-neutral-800 flex flex-col">
             <button
@@ -340,7 +333,7 @@ const VirtualTryOnContent = () => {
             )}
           </div>
         </div>
-      </div>
+          </div>
 
       {/* Center Workspace */}
       <div className="flex-1 flex flex-col">
@@ -351,10 +344,17 @@ const VirtualTryOnContent = () => {
               Virtual Try-On Workspace
             </h2>
             <div className="flex items-center gap-2">
-                             <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors">
-                 <IconPlayerPlay className="h-4 w-4" />
-                 Generate
-               </button>
+              <button 
+                onClick={addRow}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <IconPlus className="h-4 w-4" />
+                Add Row
+              </button>
+              <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors">
+                <IconPlayerPlay className="h-4 w-4" />
+                Generate
+              </button>
               <button className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-gray-700 dark:text-gray-200 rounded-lg flex items-center gap-2 transition-colors">
                 <IconDownload className="h-4 w-4" />
                 Export
@@ -362,35 +362,32 @@ const VirtualTryOnContent = () => {
             </div>
           </div>
         </div>
-
+        
         {/* Drag & Drop Table */}
-        <div className="flex-1 p-6">
-          <MinimalScrollBar className="h-full">
-            <div className="flex flex-col items-center justify-center min-h-full">
-              <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-neutral-800">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Model
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Clothing Items (2 max)
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Prompt
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Background
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Result
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
+        <div className="flex-1 p-6 overflow-hidden">
+          <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 h-full flex flex-col">
+            <MinimalScrollBar className="flex-1">
+              <div className="p-4">
+                <table className="w-full table-fixed">
+                  <thead className="bg-gray-50 dark:bg-neutral-800 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
+                      Model
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
+                      Clothing Items (2 max)
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
+                      Prompt
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
+                      Background
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
+                      Result
+                    </th>
+                  </tr>
+                </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-neutral-700">
                 {tableRows.map((row) => (
                   <tr key={row.id}>
@@ -537,47 +534,14 @@ const VirtualTryOnContent = () => {
                         <IconPlayerPlay className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                       </div>
                     </td>
-
-                    {/* Actions Column */}
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <button
-                          onClick={addRow}
-                          className="w-8 h-8 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-colors"
-                          title="Add Row"
-                        >
-                          <IconPlus className="h-4 w-4" />
-                        </button>
-                        {tableRows.length > 1 && (
-                          <button
-                            onClick={() => removeRow(row.id)}
-                            className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
-                            title="Remove Row"
-                          >
-                            <IconMinus className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-          
-          {/* Add Row Button */}
-          <div className="mt-6 flex justify-center">
-            <button
-              onClick={addRow}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-            >
-              <IconPlus className="h-4 w-4" />
-              Add Row
-            </button>
+                </table>
+              </div>
+            </MinimalScrollBar>
           </div>
         </div>
-      </MinimalScrollBar>
-    </div>
       </div>
 
       {/* Right Upload Panel */}
@@ -630,7 +594,7 @@ const VirtualTryOnContent = () => {
                   className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <IconTrash className="h-3 w-3" />
-                </button>
+            </button>
               </div>
             ))}
           </div>
