@@ -42,9 +42,9 @@ const VirtualTryOnContent = () => {
     prompts: true
   });
   const [tableRows, setTableRows] = useState<TableRow[]>([
-    { id: 1, originalPhoto: null, clothingItem: null, style: null, background: null, result: null },
-    { id: 2, originalPhoto: null, clothingItem: null, style: null, background: null, result: null },
-    { id: 3, originalPhoto: null, clothingItem: null, style: null, background: null, result: null }
+    { id: 1, model: null, clothingItems: [], prompt: null, background: null, result: null },
+    { id: 2, model: null, clothingItems: [], prompt: null, background: null, result: null },
+    { id: 3, model: null, clothingItems: [], prompt: null, background: null, result: null }
   ]);
 
   const backgrounds = [
@@ -119,17 +119,22 @@ const VirtualTryOnContent = () => {
     
     setTableRows(prev => prev.map(row => {
       if (row.id === rowId) {
-        if (type === "image") {
-          return { ...row, [cellType]: { type: "image", value } };
-        } else if (type === "background") {
-          const bg = backgrounds.find(b => b.id === value);
-          return { ...row, [cellType]: { type: "background", value: bg } };
-        } else if (type === "model") {
+        if (cellType === "model" && type === "model") {
           const model = models.find(m => m.id === value);
-          return { ...row, [cellType]: { type: "model", value: model } };
-        } else if (type === "prompt") {
+          return { ...row, model: { type: "model", value: model } };
+        } else if (cellType === "clothingItems" && type === "image") {
+          // Only allow 2 non-identical images
+          const currentItems = row.clothingItems.filter(item => item !== null);
+          const imageExists = currentItems.some(item => item?.value === value);
+          if (currentItems.length < 2 && !imageExists) {
+            return { ...row, clothingItems: [...currentItems, { type: "image", value }] };
+          }
+        } else if (cellType === "prompt" && type === "prompt") {
           const prompt = prompts.find(p => p.id === value);
-          return { ...row, [cellType]: { type: "prompt", value: prompt } };
+          return { ...row, prompt: { type: "prompt", value: prompt } };
+        } else if (cellType === "background" && type === "background") {
+          const bg = backgrounds.find(b => b.id === value);
+          return { ...row, background: { type: "background", value: bg } };
         }
       }
       return row;
@@ -140,10 +145,19 @@ const VirtualTryOnContent = () => {
     e.preventDefault();
   };
 
-  const clearCell = (rowId: number, cellType: string) => {
+  const clearCell = (rowId: number, cellType: string, itemIndex?: number) => {
     setTableRows(prev => prev.map(row => {
       if (row.id === rowId) {
-        return { ...row, [cellType]: null };
+        if (cellType === "clothingItems" && itemIndex !== undefined) {
+          const newItems = row.clothingItems.filter((_, index) => index !== itemIndex);
+          return { ...row, clothingItems: newItems };
+        } else if (cellType === "model") {
+          return { ...row, model: null };
+        } else if (cellType === "prompt") {
+          return { ...row, prompt: null };
+        } else if (cellType === "background") {
+          return { ...row, background: null };
+        }
       }
       return row;
     }));
@@ -335,13 +349,16 @@ const VirtualTryOnContent = () => {
               <thead className="bg-gray-50 dark:bg-neutral-800">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Original Photo
+                    Model
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Clothing Item
+                    Clothing Items (2 max)
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Style
+                    Prompt
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Background
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Result
@@ -351,92 +368,21 @@ const VirtualTryOnContent = () => {
                             <tbody className="divide-y divide-gray-200 dark:divide-neutral-700">
                 {tableRows.map((row) => (
                   <tr key={row.id}>
+                    {/* Model Column */}
                     <td className="px-6 py-4">
                       <div 
                         className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative"
-                        onDrop={(e) => handleDrop(e, row.id, 'originalPhoto')}
+                        onDrop={(e) => handleDrop(e, row.id, 'model')}
                         onDragOver={handleDragOver}
                       >
-                        {row.originalPhoto && row.originalPhoto.type === 'image' ? (
-                          <div className="relative w-full h-full">
-                            <img 
-                              src={row.originalPhoto.value} 
-                              alt="Original" 
-                              className="w-full h-full object-cover rounded-lg"
-                            />
+                        {row.model && row.model.type === 'model' ? (
+                          <div className="relative w-full h-full flex flex-col items-center justify-center">
+                            <div className="text-2xl mb-1">{row.model.value?.avatar}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                              {row.model.value?.name}
+                            </div>
                             <button
-                              onClick={() => clearCell(row.id, 'originalPhoto')}
-                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
-                            >
-                              <IconTrash className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ) : (
-                          <IconPhoto className="h-8 w-8 text-gray-400" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div 
-                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative"
-                        onDrop={(e) => handleDrop(e, row.id, 'clothingItem')}
-                        onDragOver={handleDragOver}
-                      >
-                        {row.clothingItem && row.clothingItem.type === 'image' ? (
-                          <div className="relative w-full h-full">
-                            <img 
-                              src={row.clothingItem.value} 
-                              alt="Clothing" 
-                              className="w-full h-full object-cover rounded-lg"
-                            />
-                            <button
-                              onClick={() => clearCell(row.id, 'clothingItem')}
-                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
-                            >
-                              <IconTrash className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ) : (
-                          <IconUpload className="h-8 w-8 text-gray-400" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div 
-                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative p-2"
-                        onDrop={(e) => handleDrop(e, row.id, 'style')}
-                        onDragOver={handleDragOver}
-                      >
-                        {row.style ? (
-                          <div className="relative w-full h-full">
-                            {row.style.type === 'prompt' && (
-                              <div className="text-center">
-                                <div className="text-xs font-medium text-gray-900 dark:text-white mb-1">
-                                  {row.style.value?.name}
-                                </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  Prompt
-                                </div>
-                              </div>
-                            )}
-                            {row.style.type === 'model' && (
-                              <div className="text-center">
-                                <div className="text-lg mb-1">{row.style.value?.avatar}</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  {row.style.value?.name}
-                                </div>
-                              </div>
-                            )}
-                            {row.style.type === 'background' && (
-                              <div className="text-center">
-                                <div className={`w-8 h-8 rounded-md ${row.style.value?.preview} mx-auto mb-1`} />
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  {row.style.value?.name}
-                                </div>
-                              </div>
-                            )}
-                            <button
-                              onClick={() => clearCell(row.id, 'style')}
+                              onClick={() => clearCell(row.id, 'model')}
                               className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
                             >
                               <IconTrash className="h-3 w-3" />
@@ -444,13 +390,122 @@ const VirtualTryOnContent = () => {
                           </div>
                         ) : (
                           <div className="text-center">
+                            <IconUser className="h-8 w-8 text-gray-400 mx-auto mb-1" />
                             <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Drop style here
+                              Drop model here
                             </div>
                           </div>
                         )}
                       </div>
                     </td>
+
+                    {/* Clothing Items Column */}
+                    <td className="px-6 py-4">
+                      <div 
+                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative"
+                        onDrop={(e) => handleDrop(e, row.id, 'clothingItems')}
+                        onDragOver={handleDragOver}
+                      >
+                        {row.clothingItems.length > 0 ? (
+                          <div className="relative w-full h-full">
+                            <div className="grid grid-cols-2 gap-1 w-full h-full">
+                              {row.clothingItems.map((item, index) => (
+                                <div key={index} className="relative">
+                                  <img 
+                                    src={item?.value} 
+                                    alt={`Clothing ${index + 1}`} 
+                                    className="w-full h-full object-cover rounded"
+                                  />
+                                  <button
+                                    onClick={() => clearCell(row.id, 'clothingItems', index)}
+                                    className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                                  >
+                                    <IconTrash className="h-2 w-2" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <IconUpload className="h-8 w-8 text-gray-400 mx-auto mb-1" />
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Drop 2 images here
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Prompt Column */}
+                    <td className="px-6 py-4">
+                      <div 
+                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative p-2"
+                        onDrop={(e) => handleDrop(e, row.id, 'prompt')}
+                        onDragOver={handleDragOver}
+                      >
+                        {row.prompt && row.prompt.type === 'prompt' ? (
+                          <div className="relative w-full h-full">
+                            <div className="text-center">
+                              <div className="text-xs font-medium text-gray-900 dark:text-white mb-1">
+                                {row.prompt.value?.name}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                Prompt
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => clearCell(row.id, 'prompt')}
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                            >
+                              <IconTrash className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <IconBulb className="h-8 w-8 text-gray-400 mx-auto mb-1" />
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Drop prompt here
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Background Column */}
+                    <td className="px-6 py-4">
+                      <div 
+                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative p-2"
+                        onDrop={(e) => handleDrop(e, row.id, 'background')}
+                        onDragOver={handleDragOver}
+                      >
+                        {row.background && row.background.type === 'background' ? (
+                          <div className="relative w-full h-full">
+                            <div className="text-center">
+                              <div className={`w-8 h-8 rounded-md ${row.background.value?.preview} mx-auto mb-1`} />
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {row.background.value?.name}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => clearCell(row.id, 'background')}
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                            >
+                              <IconTrash className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <IconPalette className="h-8 w-8 text-gray-400 mx-auto mb-1" />
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Drop background here
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Result Column */}
                     <td className="px-6 py-4">
                       <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-gray-200 dark:border-neutral-700 flex items-center justify-center">
                         <IconPlayerPlay className="h-8 w-8 text-blue-600 dark:text-blue-400" />
