@@ -14,7 +14,9 @@ import {
   IconPlayerPlay,
   IconSettings,
   IconChevronDown,
-  IconChevronRight
+  IconChevronRight,
+  IconPlus,
+  IconMinus
 } from "@tabler/icons-react";
 
 type CellContent = {
@@ -161,6 +163,25 @@ const VirtualTryOnContent = () => {
       }
       return row;
     }));
+  };
+
+  const addRow = () => {
+    const newId = Math.max(...tableRows.map(row => row.id)) + 1;
+    const newRow: TableRow = {
+      id: newId,
+      model: null,
+      clothingItems: [],
+      prompt: null,
+      background: null,
+      result: null
+    };
+    setTableRows(prev => [...prev, newRow]);
+  };
+
+  const removeRow = (rowId: number) => {
+    if (tableRows.length > 1) {
+      setTableRows(prev => prev.filter(row => row.id !== rowId));
+    }
   };
 
   return (
@@ -343,28 +364,33 @@ const VirtualTryOnContent = () => {
         </div>
 
         {/* Drag & Drop Table */}
-        <div className="flex-1 p-6 overflow-auto">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-neutral-800">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Model
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Clothing Items (2 max)
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Prompt
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Background
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Result
-                  </th>
-                </tr>
-              </thead>
+        <div className="flex-1 p-6">
+          <MinimalScrollBar className="h-full">
+            <div className="flex flex-col items-center justify-center min-h-full">
+              <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-neutral-800">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Model
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Clothing Items (2 max)
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Prompt
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Background
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Result
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-neutral-700">
                 {tableRows.map((row) => (
                   <tr key={row.id}>
@@ -511,12 +537,47 @@ const VirtualTryOnContent = () => {
                         <IconPlayerPlay className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                       </div>
                     </td>
+
+                    {/* Actions Column */}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={addRow}
+                          className="w-8 h-8 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-colors"
+                          title="Add Row"
+                        >
+                          <IconPlus className="h-4 w-4" />
+                        </button>
+                        {tableRows.length > 1 && (
+                          <button
+                            onClick={() => removeRow(row.id)}
+                            className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
+                            title="Remove Row"
+                          >
+                            <IconMinus className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          
+          {/* Add Row Button */}
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={addRow}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <IconPlus className="h-4 w-4" />
+              Add Row
+            </button>
+          </div>
         </div>
+      </MinimalScrollBar>
+    </div>
       </div>
 
       {/* Right Upload Panel */}
