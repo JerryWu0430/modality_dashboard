@@ -346,16 +346,16 @@ const VirtualTryOnContent = () => {
             <div className="flex items-center gap-2">
               <button 
                 onClick={addRow}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-200 dark:border-neutral-700"
               >
                 <IconPlus className="h-4 w-4" />
                 Add Row
               </button>
-              <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors">
+              <button className="px-4 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition-colors">
                 <IconPlayerPlay className="h-4 w-4" />
                 Generate
               </button>
-              <button className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-gray-700 dark:text-gray-200 rounded-lg flex items-center gap-2 transition-colors">
+              <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-200 dark:border-neutral-700">
                 <IconDownload className="h-4 w-4" />
                 Export
               </button>
@@ -413,10 +413,7 @@ const VirtualTryOnContent = () => {
                           </div>
                         ) : (
                           <div className="text-center">
-                            <IconUser className="h-8 w-8 text-gray-400 mx-auto mb-1" />
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Drop model here
-                            </div>
+                            <IconUser className="h-8 w-8 text-gray-400 mx-auto mb-1 opacity-30" />
                           </div>
                         )}
                       </div>
@@ -451,10 +448,7 @@ const VirtualTryOnContent = () => {
                           </div>
                         ) : (
                           <div className="text-center">
-                            <IconUpload className="h-8 w-8 text-gray-400 mx-auto mb-1" />
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Drop 2 images here
-                            </div>
+                            <IconUpload className="h-8 w-8 text-gray-400 mx-auto mb-1 opacity-30" />
                           </div>
                         )}
                       </div>
@@ -486,10 +480,7 @@ const VirtualTryOnContent = () => {
                           </div>
                         ) : (
                           <div className="text-center">
-                            <IconBulb className="h-8 w-8 text-gray-400 mx-auto mb-1" />
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Drop prompt here
-                            </div>
+                            <IconBulb className="h-8 w-8 text-gray-400 mx-auto mb-1 opacity-30" />
                           </div>
                         )}
                       </div>
@@ -519,10 +510,7 @@ const VirtualTryOnContent = () => {
                           </div>
                         ) : (
                           <div className="text-center">
-                            <IconPalette className="h-8 w-8 text-gray-400 mx-auto mb-1" />
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Drop background here
-                            </div>
+                            <IconPalette className="h-8 w-8 text-gray-400 mx-auto mb-1 opacity-30" />
                           </div>
                         )}
                       </div>
