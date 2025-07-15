@@ -337,37 +337,11 @@ const VirtualTryOnContent = () => {
 
       {/* Center Workspace */}
       <div className="flex-1 flex flex-col">
-        {/* Workspace Header */}
-        <div className="p-4 bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Virtual Try-On Workspace
-            </h2>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={addRow}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-200 dark:border-neutral-700"
-              >
-                <IconPlus className="h-4 w-4" />
-                Add Row
-              </button>
-              <button className="px-4 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition-colors">
-                <IconPlayerPlay className="h-4 w-4" />
-                Generate
-              </button>
-              <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-200 dark:border-neutral-700">
-                <IconDownload className="h-4 w-4" />
-                Export
-              </button>
-            </div>
-          </div>
-        </div>
-        
         {/* Drag & Drop Table */}
-        <div className="flex-1 p-6 overflow-hidden">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 h-full flex flex-col">
+        <div className="flex-1 overflow-hidden">
+          <div className="bg-white dark:bg-neutral-900 h-full flex flex-col">
             <MinimalScrollBar className="flex-1">
-              <div className="p-4">
+              <div>
                 <table className="w-full table-fixed">
                   <thead className="bg-gray-50 dark:bg-neutral-800 sticky top-0 z-10">
                   <tr>
@@ -539,6 +513,27 @@ const VirtualTryOnContent = () => {
             <IconPhoto className="h-4 w-4" />
             Assets
           </h2>
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="p-3 border-b border-gray-200 dark:border-neutral-800">
+          <div className="flex flex-col gap-2">
+            <button 
+              onClick={addRow}
+              className="w-full px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-200 dark:border-neutral-700 text-sm"
+            >
+              <IconPlus className="h-4 w-4" />
+              Add Row
+            </button>
+            <button className="w-full px-3 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition-colors text-sm">
+              <IconPlayerPlay className="h-4 w-4" />
+              Generate
+            </button>
+            <button className="w-full px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-200 dark:border-neutral-700 text-sm">
+              <IconDownload className="h-4 w-4" />
+              Export
+            </button>
+          </div>
         </div>
         
         {/* Upload Area */}
