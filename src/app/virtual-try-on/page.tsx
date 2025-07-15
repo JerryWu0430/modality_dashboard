@@ -47,6 +47,7 @@ const VirtualTryOnContent = () => {
     { id: 2, model: null, clothingItems: [], prompt: null, background: null, result: null },
     { id: 3, model: null, clothingItems: [], prompt: null, background: null, result: null }
   ]);
+  const [currentDragType, setCurrentDragType] = useState<string | null>(null);
 
   const backgrounds = [
     { id: "studio", name: "Studio", preview: "bg-gradient-to-br from-gray-100 to-gray-200" },
@@ -177,6 +178,34 @@ const VirtualTryOnContent = () => {
     setTableRows(prev => [...prev, newRow]);
   };
 
+  const isValidDropZone = (cellType: string) => {
+    if (!currentDragType) return true;
+    
+    switch (currentDragType) {
+      case "model":
+        return cellType === "model";
+      case "image":
+        return cellType === "clothingItems";
+      case "prompt":
+        return cellType === "prompt";
+      case "background":
+        return cellType === "background";
+      default:
+        return false;
+    }
+  };
+
+  const getDropZoneClasses = (cellType: string, baseClasses: string) => {
+    if (!currentDragType) return baseClasses;
+    
+    const isValid = isValidDropZone(cellType);
+    if (isValid) {
+      return `${baseClasses} ring-2 ring-green-400 bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-600`;
+    } else {
+      return `${baseClasses} cursor-not-allowed opacity-50 border-red-300 dark:border-red-600`;
+    }
+  };
+
   return (
     <div className="h-full flex bg-gray-50 dark:bg-neutral-950">
       {/* Left Controls Panel */}
@@ -221,6 +250,10 @@ const VirtualTryOnContent = () => {
                         draggable
                         onDragStart={(e) => {
                           e.dataTransfer.setData("text/plain", `background:${bg.id}`);
+                          setCurrentDragType("background");
+                        }}
+                        onDragEnd={() => {
+                          setCurrentDragType(null);
                         }}
                       >
                         <div className="flex items-center gap-2">
@@ -269,6 +302,10 @@ const VirtualTryOnContent = () => {
                         draggable
                         onDragStart={(e) => {
                           e.dataTransfer.setData("text/plain", `model:${model.id}`);
+                          setCurrentDragType("model");
+                        }}
+                        onDragEnd={() => {
+                          setCurrentDragType(null);
                         }}
                       >
                         <div className="flex items-center gap-2">
@@ -317,6 +354,10 @@ const VirtualTryOnContent = () => {
                         draggable
                         onDragStart={(e) => {
                           e.dataTransfer.setData("text/plain", `prompt:${prompt.id}`);
+                          setCurrentDragType("prompt");
+                        }}
+                        onDragEnd={() => {
+                          setCurrentDragType(null);
                         }}
                       >
                         <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
@@ -345,19 +386,19 @@ const VirtualTryOnContent = () => {
                 <table className="w-full table-fixed">
                   <thead className="bg-gray-50 dark:bg-neutral-800 sticky top-0 z-10">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
+                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
                       Model
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
+                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
                       Clothing Items (2 max)
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
+                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
                       Prompt
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
+                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
                       Background
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
+                    <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/5">
                       Result
                     </th>
                   </tr>
@@ -368,8 +409,14 @@ const VirtualTryOnContent = () => {
                     {/* Model Column */}
                     <td className="px-6 py-4">
                       <div 
-                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative"
-                        onDrop={(e) => handleDrop(e, row.id, 'model')}
+                        className={getDropZoneClasses('model', "w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative")}
+                        onDrop={(e) => {
+                          if (isValidDropZone('model')) {
+                            handleDrop(e, row.id, 'model');
+                          } else {
+                            e.preventDefault();
+                          }
+                        }}
                         onDragOver={handleDragOver}
                       >
                         {row.model && row.model.type === 'model' ? (
@@ -396,8 +443,14 @@ const VirtualTryOnContent = () => {
                     {/* Clothing Items Column */}
                     <td className="px-6 py-4">
                       <div 
-                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative"
-                        onDrop={(e) => handleDrop(e, row.id, 'clothingItems')}
+                        className={getDropZoneClasses('clothingItems', "w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative")}
+                        onDrop={(e) => {
+                          if (isValidDropZone('clothingItems')) {
+                            handleDrop(e, row.id, 'clothingItems');
+                          } else {
+                            e.preventDefault();
+                          }
+                        }}
                         onDragOver={handleDragOver}
                       >
                         {row.clothingItems.length > 0 ? (
@@ -431,8 +484,14 @@ const VirtualTryOnContent = () => {
                     {/* Prompt Column */}
                     <td className="px-6 py-4">
                       <div 
-                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative p-2"
-                        onDrop={(e) => handleDrop(e, row.id, 'prompt')}
+                        className={getDropZoneClasses('prompt', "w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative p-2")}
+                        onDrop={(e) => {
+                          if (isValidDropZone('prompt')) {
+                            handleDrop(e, row.id, 'prompt');
+                          } else {
+                            e.preventDefault();
+                          }
+                        }}
                         onDragOver={handleDragOver}
                       >
                         {row.prompt && row.prompt.type === 'prompt' ? (
@@ -463,8 +522,14 @@ const VirtualTryOnContent = () => {
                     {/* Background Column */}
                     <td className="px-6 py-4">
                       <div 
-                        className="w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative p-2"
-                        onDrop={(e) => handleDrop(e, row.id, 'background')}
+                        className={getDropZoneClasses('background', "w-20 h-20 bg-gray-100 dark:bg-neutral-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-neutral-600 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors relative p-2")}
+                        onDrop={(e) => {
+                          if (isValidDropZone('background')) {
+                            handleDrop(e, row.id, 'background');
+                          } else {
+                            e.preventDefault();
+                          }
+                        }}
                         onDragOver={handleDragOver}
                       >
                         {row.background && row.background.type === 'background' ? (
@@ -569,10 +634,14 @@ const VirtualTryOnContent = () => {
                       src={image}
                       alt={`Uploaded ${index + 1}`}
                       className="w-full h-20 object-cover rounded cursor-move"
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("text/plain", `image:${image}`);
-                      }}
+                                        draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", `image:${image}`);
+                    setCurrentDragType("image");
+                  }}
+                  onDragEnd={() => {
+                    setCurrentDragType(null);
+                  }}
                     />
                     <button
                       onClick={() => removeImage(index)}
