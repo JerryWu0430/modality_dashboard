@@ -117,7 +117,22 @@ const VirtualTryOnContent = () => {
   const handleDrop = (e: React.DragEvent, rowId: number, cellType: string) => {
     e.preventDefault();
     const data = e.dataTransfer.getData("text/plain");
-    const [type, value] = data.split(":");
+    
+    let type: string, value: string;
+    
+    // Use new delimiter format (|||) or fallback to old format (:)
+    const delimiterIndex = data.indexOf("|||");
+    if (delimiterIndex !== -1) {
+      type = data.substring(0, delimiterIndex);
+      value = data.substring(delimiterIndex + 3);
+    } else {
+      // Fallback to old format for backward compatibility
+      const colonIndex = data.indexOf(":");
+      type = data.substring(0, colonIndex);
+      value = data.substring(colonIndex + 1);
+    }
+    
+    console.log('Drop data received:', { type, value, cellType, rowId, originalData: data });
     
     setTableRows(prev => prev.map(row => {
       if (row.id === rowId) {
@@ -129,6 +144,7 @@ const VirtualTryOnContent = () => {
           const currentItems = row.clothingItems.filter(item => item !== null);
           const imageExists = currentItems.some(item => item?.value === value);
           if (currentItems.length < 2 && !imageExists) {
+            console.log('Adding image to clothing items:', value);
             return { ...row, clothingItems: [...currentItems, { type: "image", value }] };
           }
         } else if (cellType === "prompt" && type === "prompt") {
@@ -249,7 +265,7 @@ const VirtualTryOnContent = () => {
                         }`}
                         draggable
                         onDragStart={(e) => {
-                          e.dataTransfer.setData("text/plain", `background:${bg.id}`);
+                          e.dataTransfer.setData("text/plain", `background|||${bg.id}`);
                           setCurrentDragType("background");
                         }}
                         onDragEnd={() => {
@@ -301,7 +317,7 @@ const VirtualTryOnContent = () => {
                         }`}
                         draggable
                         onDragStart={(e) => {
-                          e.dataTransfer.setData("text/plain", `model:${model.id}`);
+                          e.dataTransfer.setData("text/plain", `model|||${model.id}`);
                           setCurrentDragType("model");
                         }}
                         onDragEnd={() => {
@@ -353,7 +369,7 @@ const VirtualTryOnContent = () => {
                         }`}
                         draggable
                         onDragStart={(e) => {
-                          e.dataTransfer.setData("text/plain", `prompt:${prompt.id}`);
+                          e.dataTransfer.setData("text/plain", `prompt|||${prompt.id}`);
                           setCurrentDragType("prompt");
                         }}
                         onDragEnd={() => {
@@ -452,6 +468,7 @@ const VirtualTryOnContent = () => {
                           }
                         }}
                         onDragOver={handleDragOver}
+                        title={`Row ${row.id}: ${row.clothingItems.length} items`}
                       >
                         {row.clothingItems.length > 0 ? (
                           <div className="relative w-full h-full">
@@ -462,6 +479,14 @@ const VirtualTryOnContent = () => {
                                     src={item?.value} 
                                     alt={`Clothing ${index + 1}`} 
                                     className="w-full h-full object-cover rounded"
+                                    onError={(e) => {
+                                      console.error('Image failed to load:', item?.value);
+                                      // Show broken image indicator
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                    onLoad={() => {
+                                      console.log('Image loaded successfully:', item?.value);
+                                    }}
                                   />
                                   <button
                                     onClick={() => clearCell(row.id, 'clothingItems', index)}
@@ -636,7 +661,7 @@ const VirtualTryOnContent = () => {
                       className="w-full h-20 object-cover rounded cursor-move"
                                         draggable
                   onDragStart={(e) => {
-                    e.dataTransfer.setData("text/plain", `image:${image}`);
+                    e.dataTransfer.setData("text/plain", `image|||${image}`);
                     setCurrentDragType("image");
                   }}
                   onDragEnd={() => {
