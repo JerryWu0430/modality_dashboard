@@ -200,9 +200,9 @@ const VirtualTryOnContent = () => {
     
     const isValid = isValidDropZone(cellType);
     if (isValid) {
-      return `${baseClasses} ring-2 ring-green-400 bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-600`;
+      return `${baseClasses} opacity-100 ring-1 ring-gray-400 dark:ring-gray-500 bg-gray-50 dark:bg-neutral-700`;
     } else {
-      return `${baseClasses} cursor-not-allowed opacity-50 border-red-300 dark:border-red-600`;
+      return `${baseClasses} cursor-not-allowed opacity-30`;
     }
   };
 
