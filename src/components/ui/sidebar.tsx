@@ -2,7 +2,6 @@
 import { cn } from "@/lib/utils";
 import React, { useState, createContext, useContext } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { IconMenu2, IconX, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 
 interface Links {
   label: string;
@@ -39,7 +38,7 @@ export const SidebarProvider = ({
   setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
   animate?: boolean;
 }) => {
-  const [openState, setOpenState] = useState(true); // Default to open
+  const [openState, setOpenState] = useState(false); // Default to collapsed
 
   const open = openProp !== undefined ? openProp : openState;
   const setOpen = setOpenProp !== undefined ? setOpenProp : setOpenState;
@@ -112,24 +111,7 @@ export const DesktopSidebar = ({
         }}
         {...props}
       >
-        {/* Toggle Button - Fixed positioning and higher z-index */}
-        <motion.button
-          onClick={() => setOpen(!open)}
-          className={cn(
-            "absolute -right-3 top-6 z-[100] flex h-6 w-6 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-md transition-colors hover:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-700 dark:hover:bg-neutral-600",
-            "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          )}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-          style={{ zIndex: 100 }} // Explicit z-index
-        >
-          {open ? (
-            <IconChevronLeft className="h-3 w-3 text-neutral-600 dark:text-neutral-300" />
-          ) : (
-            <IconChevronRight className="h-3 w-3 text-neutral-600 dark:text-neutral-300" />
-          )}
-        </motion.button>
+        {/* Toggle Button Removed - Sidebar is always collapsed */}
 
         {/* Sidebar Content */}
         <div className="flex h-full flex-col overflow-hidden px-4 py-4">
@@ -150,21 +132,7 @@ export const MobileSidebar = ({
   const { open, setOpen } = useSidebar();
   return (
     <>
-      {/* Mobile Toggle Button */}
-      <button
-        onClick={() => setOpen(!open)}
-        className={cn(
-          "fixed top-4 left-4 z-[60] md:hidden flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-lg border border-neutral-200 dark:bg-neutral-800 dark:border-neutral-700",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        )}
-        aria-label={open ? "Close sidebar" : "Open sidebar"}
-      >
-        {open ? (
-          <IconX className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
-        ) : (
-          <IconMenu2 className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
-        )}
-      </button>
+      {/* Mobile Toggle Button Removed - Sidebar is always collapsed */}
 
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
