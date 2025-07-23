@@ -18,7 +18,6 @@ interface ActionButtonsProps {
   onAddRow: () => void;
   onGenerateAll: () => void;
   onExportAll: () => void;
-  onTestModal: () => void; // For debugging - can be removed later
 }
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -29,7 +28,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   onAddRow,
   onGenerateAll,
   onExportAll,
-  onTestModal,
 }) => {
   const resultCount = tableRows.filter(row => row.result && row.result.type === 'image').length;
   const isGenerating = tableRows.some(row => row.isGenerating);
@@ -74,13 +72,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
             )}
           </button>
           
-          {/* Debug button - can be removed */}
-          <button 
-            onClick={onTestModal}
-            className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors text-sm"
-          >
-            Test Modal
-          </button>
+
         </div>
       </div>
       

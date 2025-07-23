@@ -344,15 +344,7 @@ export const VirtualTryOnContent: React.FC = () => {
     console.log('Selected image state changed:', selectedImage);
   }, [selectedImage]);
 
-  // Test modal function
-  const testModal = () => {
-    setSelectedImage({
-      url: 'https://via.placeholder.com/400x600/0066cc/ffffff?text=Test+Image',
-      rowId: 1,
-      modelName: 'Test Model',
-      clothingCount: 2
-    });
-  };
+
 
   return (
     <div className="h-full flex bg-gray-50 dark:bg-neutral-950">
@@ -397,7 +389,6 @@ export const VirtualTryOnContent: React.FC = () => {
         onAddRow={addRow}
         onGenerateAll={generateAllRows}
         onExportAll={exportAllResults}
-        onTestModal={testModal}
         onFileUpload={handleImageUpload}
         onRemoveImage={removeImage}
         onImageDragStart={(e, image) => {

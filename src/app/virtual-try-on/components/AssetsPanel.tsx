@@ -17,7 +17,6 @@ interface AssetsPanelProps {
   onAddRow: () => void;
   onGenerateAll: () => void;
   onExportAll: () => void;
-  onTestModal: () => void;
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveImage: (index: number) => void;
   onImageDragStart: (e: React.DragEvent, image: string) => void;
@@ -34,7 +33,6 @@ export const AssetsPanel: React.FC<AssetsPanelProps> = ({
   onAddRow,
   onGenerateAll,
   onExportAll,
-  onTestModal,
   onFileUpload,
   onRemoveImage,
   onImageDragStart,
@@ -57,7 +55,6 @@ export const AssetsPanel: React.FC<AssetsPanelProps> = ({
         onAddRow={onAddRow}
         onGenerateAll={onGenerateAll}
         onExportAll={onExportAll}
-        onTestModal={onTestModal}
       />
       
       <UploadArea

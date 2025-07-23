@@ -84,7 +84,10 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
             alt={`Try-on result for Row ${selectedImage.rowId}`}
             className="max-w-full max-h-full object-contain rounded-lg"
             onError={(e) => {
-              console.error('Modal image failed to load:', selectedImage.url);
+              // Only log real image loading errors, not test/placeholder URLs
+              if (!selectedImage.url.includes('placeholder') && !selectedImage.url.includes('via.placeholder')) {
+                console.warn('Failed to load try-on result image:', selectedImage.url);
+              }
             }}
           />
         </div>
