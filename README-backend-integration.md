@@ -38,9 +38,10 @@ The frontend is now integrated with the following backend endpoints:
 2. **Drag & Drop**: Images can be dragged from the gallery to table cells
 3. **Generate**: The Generate button triggers backend API calls for virtual try-on
 4. **Results**: Generated images are displayed in the Results column
-5. **Export**: The Export ZIP button downloads all generated results as a zip file
-6. **Loading States**: UI shows loading indicators and progress during generation
-7. **Error Handling**: Any errors are displayed with user-friendly messages
+5. **Preview**: Click any result image to view an enlarged version with download option
+6. **Export**: The Export ZIP button downloads all generated results as a zip file
+7. **Loading States**: UI shows loading indicators and progress during generation
+8. **Error Handling**: Any errors are displayed with user-friendly messages
 
 ## Features Implemented
 
@@ -50,6 +51,8 @@ The frontend is now integrated with the following backend endpoints:
 - ✅ Result display in table format
 - ✅ Individual row generation
 - ✅ Bulk generation for all rows
+- ✅ Clickable result images with enlarged modal view
+- ✅ Individual image download from modal
 - ✅ Export all results as ZIP file with progress indicators
 - ⏳ Kling async try-on with polling (partially implemented)
 - ⏳ VEO video generation integration (API ready, UI pending)
@@ -62,5 +65,6 @@ To complete the integration:
 2. Integrate VEO video generation with UI
 3. Implement batch operations
 4. Add result history and management
-5. Add result preview/zoom functionality
-6. Implement result filtering and search 
+5. Implement result filtering and search
+6. Add keyboard navigation for modal (arrow keys for next/previous)
+7. Add image comparison mode (before/after) 
