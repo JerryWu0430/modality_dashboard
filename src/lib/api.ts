@@ -15,6 +15,7 @@ export interface TryOnResponse {
   request_id: string;
 }
 
+
 export interface TryOnResultResponse {
   status: string;
   task_id: string;

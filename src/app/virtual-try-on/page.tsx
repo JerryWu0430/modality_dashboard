@@ -26,6 +26,7 @@ import {
   VeoFashionVideoRequest,
   isKlingTryOnComplete 
 } from "@/lib/api";
+import JSZip from 'jszip';
 
 type CellContent = {
   type: 'image' | 'background' | 'model' | 'prompt';
@@ -63,6 +64,8 @@ const VirtualTryOnContent = () => {
   const [currentDragType, setCurrentDragType] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const backgrounds = [
     { id: "studio", name: "Studio", preview: "bg-gradient-to-br from-gray-100 to-gray-200" },
@@ -332,6 +335,80 @@ const VirtualTryOnContent = () => {
 
     // Generate all valid rows in parallel
     await Promise.all(validRows.map(row => generateSingleRow(row.id)));
+  };
+
+  // Helper function to download image as blob
+  const downloadImageAsBlob = async (imageUrl: string): Promise<Blob> => {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to download image: ${response.statusText}`);
+    }
+    return response.blob();
+  };
+
+  // Export all results as ZIP
+  const exportAllResults = async () => {
+    setExporting(true);
+    setExportError(null);
+
+    try {
+      // Get all rows with results
+      const rowsWithResults = tableRows.filter(row => 
+        row.result && row.result.type === 'image' && row.result.value
+      );
+
+      if (rowsWithResults.length === 0) {
+        setExportError('No results to export. Please generate some images first.');
+        return;
+      }
+
+      const zip = new JSZip();
+      
+      // Download and add each result image to the zip
+      const downloadPromises = rowsWithResults.map(async (row, index) => {
+        try {
+          const imageUrl = row.result!.value;
+          const blob = await downloadImageAsBlob(imageUrl);
+          
+          // Determine file extension from URL or default to jpg
+          const urlParts = imageUrl.split('.');
+          const extension = urlParts.length > 1 ? urlParts.pop()?.split('?')[0] : 'jpg';
+          
+          // Create filename with row info
+          const modelName = row.model?.value?.name || 'Unknown';
+          const clothingCount = row.clothingItems.length;
+          const filename = `result_row${row.id}_${modelName.replace(/\s+/g, '_')}_${clothingCount}items.${extension}`;
+          
+          zip.file(filename, blob);
+        } catch (error) {
+          console.error(`Failed to download image for row ${row.id}:`, error);
+          // Continue with other images even if one fails
+        }
+      });
+
+      await Promise.all(downloadPromises);
+
+      // Generate and download the zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Create download link
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `virtual-tryon-results-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log(`Exported ${rowsWithResults.length} result images`);
+      
+    } catch (error) {
+      console.error('Export failed:', error);
+      setExportError(error instanceof Error ? error.message : 'Export failed');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -771,11 +848,30 @@ const VirtualTryOnContent = () => {
               )}
               {tableRows.some(row => row.isGenerating) ? 'Generating...' : 'Generate'}
             </button>
-            <button className="w-full px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-200 dark:border-neutral-700 text-sm">
-              <IconDownload className="h-4 w-4" />
-              Export
+            <button 
+              onClick={exportAllResults}
+              disabled={exporting || tableRows.every(row => !row.result)}
+              className="w-full px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-200 dark:border-neutral-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exporting ? (
+                <IconLoader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <IconDownload className="h-4 w-4" />
+              )}
+              {exporting ? 'Exporting...' : (() => {
+                const resultCount = tableRows.filter(row => row.result && row.result.type === 'image').length;
+                return resultCount > 0 ? `Export ZIP (${resultCount})` : 'Export ZIP';
+              })()}
             </button>
           </div>
+          {exportError && (
+            <div className="px-3 pb-3">
+              <div className="flex items-center gap-2 text-red-600 text-xs">
+                <IconAlertCircle className="h-4 w-4" />
+                {exportError}
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Upload Area */}
