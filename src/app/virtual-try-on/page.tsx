@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { SidebarComponent } from "@/components/sidebar-component";
 import { MinimalScrollBar } from "@/components/ui/minimal-scroll-bar";
 import { 
@@ -15,8 +15,17 @@ import {
   IconSettings,
   IconChevronDown,
   IconChevronRight,
-  IconPlus
+  IconPlus,
+  IconLoader2,
+  IconAlertCircle
 } from "@tabler/icons-react";
+import { 
+  apiService, 
+  TryOnRequest, 
+  GPTTryOnRequest,
+  VeoFashionVideoRequest,
+  isKlingTryOnComplete 
+} from "@/lib/api";
 
 type CellContent = {
   type: 'image' | 'background' | 'model' | 'prompt';
@@ -30,10 +39,14 @@ type TableRow = {
   prompt: CellContent;
   background: CellContent;
   result: CellContent;
+  isGenerating?: boolean;
+  generationError?: string;
+  taskId?: string;
 };
 
 const VirtualTryOnContent = () => {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   const [selectedBackground, setSelectedBackground] = useState("studio");
   const [selectedModel, setSelectedModel] = useState("default");
   const [selectedPrompt, setSelectedPrompt] = useState("casual");
@@ -48,6 +61,8 @@ const VirtualTryOnContent = () => {
     { id: 3, model: null, clothingItems: [], prompt: null, background: null, result: null }
   ]);
   const [currentDragType, setCurrentDragType] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const backgrounds = [
     { id: "studio", name: "Studio", preview: "bg-gradient-to-br from-gray-100 to-gray-200" },
@@ -102,16 +117,41 @@ const VirtualTryOnContent = () => {
     }));
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      const newImages = Array.from(files).map(file => URL.createObjectURL(file));
-      setUploadedImages(prev => [...prev, ...newImages]);
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        // Create local preview URL
+        const localUrl = URL.createObjectURL(file);
+        
+        // Upload to S3
+        const s3Url = await apiService.uploadToS3(file, 'user-uploads');
+        
+        return { localUrl, s3Url };
+      });
+
+      const results = await Promise.all(uploadPromises);
+      
+      // Update state with both local preview URLs and S3 URLs
+      setUploadedImages(prev => [...prev, ...results.map(r => r.localUrl)]);
+      setUploadedImageUrls(prev => [...prev, ...results.map(r => r.s3Url)]);
+      
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadError(error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setUploading(false);
     }
-  };
+  }, []);
 
   const removeImage = (index: number) => {
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    setUploadedImageUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDrop = (e: React.DragEvent, rowId: number, cellType: string) => {
@@ -142,10 +182,13 @@ const VirtualTryOnContent = () => {
         } else if (cellType === "clothingItems" && type === "image") {
           // Only allow 2 non-identical images
           const currentItems = row.clothingItems.filter(item => item !== null);
-          const imageExists = currentItems.some(item => item?.value === value);
+          // Find the corresponding S3 URL for this local preview URL
+          const imageIndex = uploadedImages.indexOf(value);
+          const s3Url = imageIndex >= 0 ? uploadedImageUrls[imageIndex] : value;
+          const imageExists = currentItems.some(item => item?.value === s3Url);
           if (currentItems.length < 2 && !imageExists) {
-            console.log('Adding image to clothing items:', value);
-            return { ...row, clothingItems: [...currentItems, { type: "image", value }] };
+            console.log('Adding image to clothing items:', s3Url);
+            return { ...row, clothingItems: [...currentItems, { type: "image", value: s3Url }] };
           }
         } else if (cellType === "prompt" && type === "prompt") {
           const prompt = prompts.find(p => p.id === value);
@@ -220,6 +263,75 @@ const VirtualTryOnContent = () => {
     } else {
       return `${baseClasses} cursor-not-allowed opacity-30`;
     }
+  };
+
+  // Generation functions
+  const generateSingleRow = async (rowId: number) => {
+    const row = tableRows.find(r => r.id === rowId);
+    if (!row) return;
+
+    // Validate row has required data
+    if (!row.model || !row.clothingItems.length) {
+      console.warn('Row missing required data for generation');
+      return;
+    }
+
+    // Set loading state
+    setTableRows(prev => prev.map(r => 
+      r.id === rowId 
+        ? { ...r, isGenerating: true, generationError: undefined, result: null }
+        : r
+    ));
+
+    try {
+      const clothingUrls = row.clothingItems.map(item => item?.value).filter(Boolean);
+      
+      // For GPT-4o try-on with model
+      if (row.model.type === 'model') {
+        // Use GPT-4o generate model endpoint (no need for person image)
+        const request = {
+          clothing_image_urls: clothingUrls,
+          model_preference: row.model.value?.name || 'professional',
+          quality: 'high' as const,
+          size: '1024x1024' as const,
+          output_format: 'jpeg' as const
+        };
+
+        const result = await apiService.gptTryOnGenerateModel(request);
+        
+        // Update row with result
+        setTableRows(prev => prev.map(r => 
+          r.id === rowId 
+            ? { 
+                ...r, 
+                isGenerating: false, 
+                result: { type: 'image', value: result.image_url },
+                taskId: result.request_id
+              }
+            : r
+        ));
+      }
+    } catch (error) {
+      console.error('Generation failed:', error);
+      setTableRows(prev => prev.map(r => 
+        r.id === rowId 
+          ? { 
+              ...r, 
+              isGenerating: false, 
+              generationError: error instanceof Error ? error.message : 'Generation failed'
+            }
+          : r
+      ));
+    }
+  };
+
+  const generateAllRows = async () => {
+    const validRows = tableRows.filter(row => 
+      row.model && row.clothingItems.length > 0 && !row.isGenerating
+    );
+
+    // Generate all valid rows in parallel
+    await Promise.all(validRows.map(row => generateSingleRow(row.id)));
   };
 
   return (
@@ -582,8 +694,40 @@ const VirtualTryOnContent = () => {
 
                     {/* Result Column */}
                     <td className="px-6 py-4">
-                      <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-gray-200 dark:border-neutral-700 flex items-center justify-center">
-                        <IconPlayerPlay className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-gray-200 dark:border-neutral-700 flex items-center justify-center relative">
+                        {row.isGenerating ? (
+                          <IconLoader2 className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin" />
+                        ) : row.generationError ? (
+                          <div className="text-center">
+                            <IconAlertCircle className="h-6 w-6 text-red-500 mx-auto mb-1" />
+                            <div className="text-xs text-red-500">Error</div>
+                          </div>
+                        ) : row.result && row.result.type === 'image' ? (
+                          <img 
+                            src={row.result.value} 
+                            alt="Try-on result" 
+                            className="w-full h-full object-cover rounded-lg"
+                            onError={(e) => {
+                              console.error('Result image failed to load:', row.result?.value);
+                            }}
+                          />
+                        ) : (
+                          <button
+                            onClick={() => generateSingleRow(row.id)}
+                            disabled={!row.model || !row.clothingItems.length || row.isGenerating}
+                            className="p-2 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Generate try-on for this row"
+                          >
+                            <IconPlayerPlay className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                          </button>
+                        )}
+                        {row.generationError && (
+                          <div className="absolute top-0 left-0 w-full h-full bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <div className="text-xs text-red-600 dark:text-red-400 text-center p-1">
+                              {row.generationError}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -615,9 +759,17 @@ const VirtualTryOnContent = () => {
               <IconPlus className="h-4 w-4" />
               Add Row
             </button>
-            <button className="w-full px-3 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition-colors text-sm">
-              <IconPlayerPlay className="h-4 w-4" />
-              Generate
+            <button 
+              onClick={generateAllRows}
+              disabled={uploading || tableRows.some(row => row.isGenerating)}
+              className="w-full px-3 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {tableRows.some(row => row.isGenerating) ? (
+                <IconLoader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <IconPlayerPlay className="h-4 w-4" />
+              )}
+              {tableRows.some(row => row.isGenerating) ? 'Generating...' : 'Generate'}
             </button>
             <button className="w-full px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-200 dark:border-neutral-700 text-sm">
               <IconDownload className="h-4 w-4" />
@@ -634,15 +786,37 @@ const VirtualTryOnContent = () => {
               multiple
               accept="image/*"
               onChange={handleImageUpload}
+              disabled={uploading}
               className="hidden"
             />
-            <div className="w-full h-24 bg-gray-50 dark:bg-neutral-800 border-2 border-dashed border-gray-300 dark:border-neutral-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors">
-              <IconUpload className="h-6 w-6 text-gray-400 mb-1" />
-              <span className="text-xs text-gray-600 dark:text-gray-400">
-                Upload Images
-              </span>
+            <div className={`w-full h-24 bg-gray-50 dark:bg-neutral-800 border-2 border-dashed border-gray-300 dark:border-neutral-600 rounded-lg flex flex-col items-center justify-center transition-colors ${
+              uploading 
+                ? 'cursor-not-allowed opacity-50' 
+                : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700'
+            }`}>
+              {uploading ? (
+                <>
+                  <IconLoader2 className="h-6 w-6 text-gray-400 mb-1 animate-spin" />
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    Uploading...
+                  </span>
+                </>
+              ) : (
+                <>
+                  <IconUpload className="h-6 w-6 text-gray-400 mb-1" />
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    Upload Images
+                  </span>
+                </>
+              )}
             </div>
           </label>
+          {uploadError && (
+            <div className="mt-2 flex items-center gap-2 text-red-600 text-xs">
+              <IconAlertCircle className="h-4 w-4" />
+              {uploadError}
+            </div>
+          )}
         </div>
 
         {/* Uploaded Images Gallery */}
